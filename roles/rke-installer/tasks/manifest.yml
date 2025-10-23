@@ -1,0 +1,12 @@
+---
+########################################
+#               Root CA                -
+########################################
+- name: Copy Root CA Secret
+  ansible.builtin.template:
+    src: "{{ root_ca_manifest }}"
+    dest: "{{ rke_manifest_path }}/rke2-00-root-ca.yaml"
+    owner: root
+    group: root
+    mode: 0644
+  when: rke2_type == 'server' and root_ca_config is true

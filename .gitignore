@@ -1,0 +1,5 @@
+/artifacts
+/logs/
+/credentials/ssh.key
+dep.env
+.vscode/

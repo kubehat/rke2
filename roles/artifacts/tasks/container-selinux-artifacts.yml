@@ -1,0 +1,33 @@
+---
+#-------------------------------------------------------#
+# This will install only Generic Container Selinux RPM  #
+#    https://github.com/containers/container-selinux    #
+#-------------------------------------------------------#
+
+########################################
+#       Download Selinux Artifact      #
+########################################
+- name: Create Selinux artifacts folder
+  ansible.builtin.file:
+    path: "{{ local_rke2_selinux_path }}/redhat"
+    state: directory
+    mode: 0700
+
+- name: Download CentOS GPG Signature Key
+  ansible.builtin.get_url:
+    url: "{{ centos_gpg_key_url }}"
+    dest: "{{ local_rke2_selinux_path }}/redhat/{{ centos_gpg_key_file }}"
+    validate_certs: "{{ false if artifactory_auth else omit }}"
+    url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+    url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"
+    mode: 0700
+
+- name: Download Container SELinux artifact
+  ansible.builtin.get_url:
+    url: "{{ item }}"
+    dest: "{{ local_rke2_selinux_path }}/redhat/{{ item | basename }}"
+    validate_certs: "{{ false if artifactory_auth else omit }}"
+    url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+    url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"
+    mode: 0700
+  with_items: "{{ container_selinux_artifact }}"

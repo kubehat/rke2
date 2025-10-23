@@ -1,0 +1,27 @@
+---
+########################################
+#                 Debian               #
+########################################
+- name: INCLUDE | Debian family
+  include_tasks: debian.yml
+  when: ansible_os_family == "Debian"
+
+########################################
+#                 RedHat               #
+########################################
+- name: Install RPMs Offline
+  include_tasks: rpm.yml
+  when:
+    - lvm_rpm_offline is true
+    - ansible_os_family == "RedHat"
+
+- name: INCLUDE | RedHat family
+  include_tasks: redhat.yml
+  when: ansible_os_family == "RedHat"
+
+########################################
+#                 LVM                  #
+########################################
+- name: INCLUDE | Apply
+  include_tasks: manage_lvm.yml
+  when: lvm_apply

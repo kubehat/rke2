@@ -1,0 +1,13 @@
+---
+#####################################
+# Test playbook Debug
+- name: Test Task only
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/repos.yml
+  tasks:
+    - name: Generate helm repo secret template
+      template:
+        src: helm.yaml.j2
+        dest: "/tmp/helm.yaml"

@@ -1,0 +1,112 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  creationTimestamp: null
+  name: kube-vip
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: kube-vip
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: kube-vip
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+      containers:
+      - args:
+        - manager
+        env:
+        - name: vip_arp            # ARP
+          value: "{{ kube_vip_arp_enabled | string | lower }}"
+        - name: port
+          value: "6443"
+{% if kube_vip_arp_enabled %}
+        - name: vip_interface      # ARP interface
+          value: "{{ kube_vip_arp_interface }}"
+{% endif %}
+{% if kube_vip_bgp_enabled %}
+        - name: vip_interface      # BGP interface
+          value: "{{ kube_vip_bgp_interface }}"
+{% endif %}
+        - name: vip_cidr
+          value: "32"
+        - name: cp_enable
+          value: "true"
+        - name: vip_ddns
+          value: "false"
+        - name: svc_enable
+          value: "false"
+        - name: cp_namespace       # LeaderElection
+          value: kube-system
+        - name: vip_leaderelection # LeaderElection
+          value: "true"
+        - name: vip_leaseduration  # LeaderElection
+          value: "5"
+        - name: vip_renewdeadline  # LeaderElection
+          value: "3"
+        - name: vip_retryperiod    # LeaderElection
+          value: "1"
+        - name: vip_leasename
+          value: plndr-cp-lock
+        - name: address            # VIP Address
+          value: "{{ kube_vip_ip }}"
+        - name: vip_loglevel
+          value: "5"
+{% if kube_vip_bgp_enabled %}
+        - name: bgp_enable         # BGP
+          value: "{{ kube_vip_bgp_enabled | string | lower }}"
+        - name: bgp_routerid
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: bgp_as             # The AS we peer from
+          value: "{{ kube_vip_bgp_local_as }}"
+        - name: bgp_peeras         # AS of a single BGP Peer
+          value: "{{ kube_vip_bgp_local_as }}"
+        - name: bgp_peers          # list of BGP peers (Firewall or router peer)
+          value: {{ kube_vip_bgp_peer_address }}:{{ kube_vip_bgp_peer_as }}::false
+{% endif %}
+        image: {{ kube_vip_image }}
+        imagePullPolicy: Always
+        name: kube-vip
+        resources: {}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_TIME
+        volumeMounts:
+        - mountPath: /etc/kubernetes/admin.conf
+          name: kubeconfig
+      hostAliases:
+      - hostnames:
+        - kubernetes
+        ip: 127.0.0.1
+      hostNetwork: true
+      serviceAccountName: kube-vip
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /etc/rancher/rke2/rke2.yaml
+        name: kubeconfig
+  updateStrategy: {}
+status:
+  currentNumberScheduled: 0
+  desiredNumberScheduled: 0
+  numberMisscheduled: 0
+  numberReady: 0

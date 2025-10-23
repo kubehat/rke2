@@ -1,0 +1,13 @@
+---
+##################################################
+#                Disable Firewalld               #
+##################################################
+- name: Stop and mask firewalld if installed
+  ansible.builtin.systemd:
+    name: firewalld
+    state: stopped
+    enabled: no
+    masked: yes
+  when:
+    - enable_firewalld == false
+    - ansible_facts.services['firewalld.service'] is defined

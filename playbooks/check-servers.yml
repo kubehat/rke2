@@ -1,0 +1,6 @@
+---
+- name: Test connection System details
+  hosts: k8s_cluster
+  become: true
+  roles:
+    - role: host-info

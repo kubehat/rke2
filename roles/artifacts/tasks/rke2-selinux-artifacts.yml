@@ -1,0 +1,32 @@
+---
+#--------------------------------------------------#
+# This will install only Rancher RKE2 Selinux RPM  #
+#     https://github.com/rancher/rke2-selinux      #
+#--------------------------------------------------#
+
+########################################
+#       Download Selinux Artifact      #
+########################################
+- name: Create Selinux artifacts folder
+  ansible.builtin.file:
+    path: "{{ local_rke2_selinux_path }}/rke2"
+    state: directory
+    mode: 0700
+
+- name: Download RKE2 SELinux GPG Signature Key
+  ansible.builtin.get_url:
+    url: "{{ rke2_artifact_selinux_gpg_key_url }}"
+    dest: "{{ local_rke2_selinux_path }}/rke2/{{ rke2_artifact_selinux_gpg_key_file }}"
+    validate_certs: "{{ false if artifactory_auth else omit }}"
+    url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+    url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"
+    mode: 0700
+
+- name: Download RKE2 SELinux artifact
+  ansible.builtin.get_url:
+    url: "{{ rke2_artifact_selinux_url }}"
+    dest: "{{ local_rke2_selinux_path }}/rke2/{{ rke2_artifact_selinux_url | basename }}"
+    validate_certs: "{{ false if artifactory_auth else omit }}"
+    url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+    url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"
+    mode: 0700

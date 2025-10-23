@@ -1,0 +1,25 @@
+---
+########################################
+#            RKE2 Artifacts            #
+########################################
+- name: Download RKE2 Artifacts
+  include_tasks: rke2-artifacts.yml
+  when:
+    - rke2_airgap_mode
+    - download_artifacts
+
+########################################
+#       Selinux Artifact RKE2          #
+########################################
+- name: Prepare RKE Selinux Package
+  include_tasks: rke2-selinux-artifacts.yml
+  when:
+    - rke2_selinux
+
+########################################
+#      Selinux Artifact Redhat         #
+########################################
+- name: Prepare RedHat Selinux Package
+  include_tasks: container-selinux-artifacts.yml
+  when:
+    - container_selinux

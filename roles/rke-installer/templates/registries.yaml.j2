@@ -1,0 +1,31 @@
+{# RKE Registry Configuration #}
+{# Registry config Doc https://docs.rke2.io/install/private_registry #}
+
+{# Names and endpoints of the private registries #}
+mirrors:
+{% for registry_name, mirrors in mirrors.items() %}
+  {{ registry_name }}:
+    endpoint:
+{% for endpoint_url in mirrors.endpoint %}
+      - "{{ endpoint_url }}"
+{% endfor %}
+{% if mirrors.rewrites | default({}) %}
+    rewrites:
+{% for pattern, replacement in mirrors.rewrites.items() %}
+      "{{ pattern }}": "{{ replacement }}"
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{# Configs TLS and credential configuration #}
+configs:
+{% for entry in registries.values() %}
+  {{ entry.url }}:
+{% if entry.auth | default(true) %}
+    auth:
+      username: "{{ entry.username }}"
+      password: "{{ entry.password }}"
+{%+ endif %}
+    tls:
+      insecure_skip_verify: {{ entry.insecure | default(false) | lower }}
+{% endfor %}

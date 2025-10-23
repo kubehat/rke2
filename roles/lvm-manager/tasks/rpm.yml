@@ -1,0 +1,77 @@
+---
+- name: Check if RPM is already installed
+  command: "rpm -q {{ item | regex_replace('.tar.gz', '') }}"
+  register: rpm_check
+  failed_when: false
+  with_items: "{{ packages_list }}"
+  loop_control:
+    label: "{{ item | regex_replace('.tar.gz', '') }}"
+  when: rke2_airgap_mode is true
+
+- name: Set fact if RPM is absent
+  set_fact:
+    rpm_absent_list: "{{ rpm_check.results | selectattr('stdout', 'search', 'is not installed') | map(attribute='item') | list }}"
+  when:
+    - rpm_check.results is defined
+    - rke2_airgap_mode is true
+
+- name: Create RPMs destination folder
+  ansible.builtin.file:
+    path: "/tmp/rpms"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy RPMs to Host
+  ansible.builtin.copy:
+    src: "{{ role_path }}/helper/{{ item }}"
+    dest: "/tmp/rpms/{{ item }}"
+    mode: 0644
+    force: yes
+  with_items: "{{ rpm_absent_list }}"
+
+- name: Create RPMs folder
+  ansible.builtin.file:
+    path: "/tmp/rpms/{{ item | regex_replace('\\.tar\\.gz$', '') }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  with_items: "{{ rpm_absent_list }}"
+
+- name: Extract RPMs
+  ansible.builtin.unarchive:
+    src: "/tmp/rpms/{{ item }}"
+    dest: "/tmp/rpms/{{ item | regex_replace('\\.tar\\.gz$', '') }}"
+    remote_src: yes
+  with_items: "{{ rpm_absent_list }}"
+
+- name: Find all RPMs files in folder
+  find:
+    paths: "/tmp/rpms/{{ item | regex_replace('\\.tar\\.gz$', '') }}"
+    patterns: "*.rpm"
+  register: rpm_files
+  with_items: "{{ rpm_absent_list }}"
+
+- name: Setting rpm_list
+  set_fact:
+    rpm_list: "{{ rpm_files.results | map(attribute='files') | flatten(levels=1) | map(attribute='path') | list }}"
+
+- name: installing the RPMs files
+  yum:
+    name: "{{rpm_list}}"
+    state: present
+
+- name: Enable and start services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  become: true
+  loop: "{{ packages_services }}"
+
+- name: Purge all contents of a directory, including hidden files
+  ansible.builtin.file:
+    path: "/tmp/rpms"
+    state: absent

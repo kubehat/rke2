@@ -1,0 +1,42 @@
+---
+########################################
+#  RKE2 (config, registries, manifest) -
+########################################
+- name: Create destination folder
+  ansible.builtin.file:
+    path: "{{ rke_config_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy RKE2 config
+  ansible.builtin.template:
+    src: "{{ rke2_config }}"
+    dest: "{{ rke_config_path }}/config.yaml"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Remove empty lines from rendered config file
+  ansible.builtin.shell: |
+    sed -i '/^\s*$/d' {{ rke_config_path }}/config.yaml
+  args:
+    executable: /bin/bash
+
+- name: Copy private registries config
+  ansible.builtin.template:
+    src: "{{ rke2_registry_config }}"
+    dest: "{{ rke_config_path }}/registries.yaml"
+    owner: root
+    group: root
+    mode: 0600
+  when: config_private_registry
+
+- name: Create Manifest folder
+  ansible.builtin.file:
+    path: "{{ rke_manifest_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'

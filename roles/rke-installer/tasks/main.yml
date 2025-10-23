@@ -1,0 +1,64 @@
+---
+########################################
+#        Gather facts Services         -
+########################################
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+########################################
+#          Disable Services            -
+########################################
+- name: Define list of services to check
+  ansible.builtin.set_fact:
+    services_to_disable:
+      - nm-cloud-setup.service
+      - nm-cloud-setup.timer
+
+# related to this condition https://docs.rke2.io/known_issues#networkmanager
+- name: Disable nm-cloud-setup services if they exist
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ services_to_disable }}"
+  when: item in ansible_facts.services
+
+########################################
+#              TASK Config             -
+########################################
+- name: Config files (config.yml, registries.yml)
+  include_tasks: config.yml
+  when:
+    - ansible_facts.services['rke2-server.service'].state is not defined
+
+########################################
+#              TASK Manifest           -
+########################################
+- name: Manifest apply on startup
+  include_tasks: manifest.yml
+  when:
+    - ansible_facts.services['rke2-server.service'].state is not defined
+
+########################################
+#              TASK RKE2               -
+########################################
+- name: Install RKE
+  include_tasks: install.yml
+  when:
+    - ansible_facts.services['rke2-server.service'].state is not defined
+
+########################################
+#          Kubeconfig RKE2             -
+########################################
+- name: Alias setup
+  include_tasks: alias.yml
+  when:
+    - ansible_facts.services['rke2-server.service'].state is not defined
+
+########################################
+#           Crictl RKE2                -
+########################################
+- name: crictl setup
+  include_tasks: crictl.yml
+  when:
+    - ansible_facts.services['rke2-server.service'].state is not defined

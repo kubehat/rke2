@@ -1,0 +1,21 @@
+---
+- name: Display Host Information
+  debug:
+    msg:
+      - "Hostname: {{ ansible_hostname }}"
+      - "FQDN: {{ ansible_fqdn }}"
+      - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "Kernel: {{ ansible_kernel }}"
+      - "Default IPv4 Address: {{ ansible_default_ipv4.address }}"
+      - "Default IPv6 Address: {{ ansible_default_ipv6.address | default('N/A') }}"
+      - "Architecture: {{ ansible_architecture }}"
+      - "Processor Cores: {{ ansible_processor_cores }}"
+      - "Total Memory: {{ ansible_memtotal_mb }} MB"
+
+- name: rke2 API IP address
+  debug:
+    msg: "rke2 API IP: {{ hostvars[groups[rke2_servers_group_name][0]]['ansible_host'] }},{{ hostvars[groups[rke2_servers_group_name][0]]['ansible_host_ipv6'] }}"
+
+- name: IPv4/IPv6 of each host
+  debug:
+    msg: "Server IPv4/IPv6: {{ hostvars[inventory_hostname]['ansible_host'] }},{{ hostvars[inventory_hostname]['ansible_host_ipv6'] }}"

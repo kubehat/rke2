@@ -1,0 +1,27 @@
+---
+- name: Check if RKE2 uninstall script exists
+  stat:
+    path: /usr/local/bin/rke2-uninstall.sh
+  register: rke2_uninstall_script
+
+- name: Run RKE2 uninstall script if it exists
+  command: /usr/local/bin/rke2-uninstall.sh
+  when: rke2_uninstall_script.stat.exists
+  ignore_errors: true
+
+- name: Remove VIP IP from Hosts - BGP
+  ansible.builtin.command: ip addr del {{ kube_vip_ip }}/32 dev {{ kube_vip_bgp_interface }}
+  when:
+    - kube_vip | bool
+  ignore_errors: true
+
+- name: Remove VIP IP from Hosts - ARP
+  ansible.builtin.command: ip addr del {{ kube_vip_ip }}/32 dev {{ kube_vip_arp_interface }}
+  when:
+    - kube_vip | bool
+  ignore_errors: true
+
+- name: Purge all contents of a directory, including hidden files
+  ansible.builtin.file:
+    path: "{{ local_rke2_artifact_path }}"
+    state: absent

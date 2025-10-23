@@ -1,0 +1,143 @@
+---
+########################################
+#               Artifacts              -
+########################################
+# Used for airgaped and non airgaped installation
+- name: Create RKE2 artifacts folder
+  ansible.builtin.file:
+    path: "{{ rke2_artifact_path }}"
+    state: directory
+    mode: 0700
+
+- name: Create RKE2 images folder
+  ansible.builtin.file:
+    path: "{{ rke2_data_path }}/agent/images"
+    state: directory
+    mode: 0700
+  when: rke2_airgap_mode
+
+- name: Copy local RKE2 installation script
+  ansible.builtin.copy:
+    src: "{{ local_rke2_artifact_path }}/rke2.sh"
+    dest: "{{ rke2_artifact_path }}/rke2.sh"
+    mode: 0700
+    force: yes
+  when: rke2_airgap_mode
+
+- name: Copy local RKE2 artifacts
+  ansible.builtin.copy:
+    src: "{{ local_rke2_artifact_path }}/{{ item }}"
+    dest: "{{ rke2_artifact_path }}/{{ item }}"
+    mode: 0644
+    force: yes
+  with_items: "{{ rke2_artifact }}"
+  when: rke2_airgap_mode
+
+########################################
+#               Service                -
+########################################
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: Get stats of the FS object
+  ansible.builtin.stat:
+    path: /usr/local
+  register: usr_local
+
+- name: Set RKE2 bin path
+  ansible.builtin.set_fact:
+    rke2_bin_path: "{{ '/usr/local/bin/rke2' if usr_local.stat.writeable == True else ' /opt/rke2/bin/rke2' }}"
+
+- name: Check RKE2 version
+  ansible.builtin.shell: |
+    set -euo pipefail
+
+    rke2_bin_path="{{ rke2_bin_path }}"
+    rke2_service_name="{{ rke2_service_name }}"
+    rke2_version="{{ rke2_version }}"
+
+    if [ -f "$rke2_bin_path" ]; then
+      installed_version="$($rke2_bin_path --version | awk '/rke2 version/ {print $3}')"
+    else
+      installed_version="not installed"
+    fi
+
+    if systemctl is-active --quiet $rke2_service_name && rke2_service_pid=$(systemctl show $rke2_service_name --property MainPID --value); then
+      rke2_bin_path="$(realpath "/proc/$rke2_service_pid/exe")"
+    fi
+
+    # Linux appends the target of removed proc exe with ' (deleted)', making the path unavailable.
+    if [ -f "$rke2_bin_path" ]; then
+      running_version="$($rke2_bin_path --version | awk '/rke2 version/ {print $3}')"
+    elif [ "$installed_version" = "not installed" ]; then
+      running_version="$rke2_version"
+    else
+      running_version="outdated"
+    fi
+
+    echo "{\"installed_version\":\"$installed_version\",\"running_version\":\"$running_version\"}"
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: versions_check
+
+- name: Set RKE2 versions
+  ansible.builtin.set_fact:
+    installed_version: "{{ versions.installed_version }}"
+    running_version: "{{ versions.running_version }}"
+  vars:
+    versions: "{{ versions_check.stdout | from_json }}"
+
+- name: Print RKE2 version info
+  ansible.builtin.debug:
+    msg:
+      - Installed version: "{{ installed_version }}"
+      - Running version: "{{ running_version }}"
+
+- name: Download RKE2 installer
+  ansible.builtin.get_url:
+    url: "{{ rke2_install_bash_url }}"
+    dest: "{{ rke2_artifact_path }}/rke2.sh"
+    mode: '0755'
+  when: not rke2_airgap_mode
+
+- name: Run RKE2 install script without airgap variables
+  ansible.builtin.command:
+    cmd: "{{ rke2_artifact_path }}/rke2.sh"
+  environment:
+    INSTALL_RKE2_VERSION: "{{ rke2_version }}"
+    INSTALL_RKE2_CHANNEL: "{{ rke2_channel }}"
+    INSTALL_RKE2_METHOD: "{{ rke2_method }}"
+    INSTALL_RKE2_TYPE: "{{ rke2_type }}"
+  changed_when: false
+  when: not rke2_airgap_mode
+
+- name: Run AirGap RKE2 script
+  ansible.builtin.command:
+    cmd: "{{ rke2_artifact_path }}/rke2.sh"
+  environment:
+    INSTALL_RKE2_ARTIFACT_PATH: "{{ rke2_artifact_path }}"
+    INSTALL_RKE2_AGENT_IMAGES_DIR: "{{ rke2_data_path }}/agent/images"
+    INSTALL_RKE2_TYPE: "{{ rke2_type }}"
+    INSTALL_RKE2_METHOD: "{{ rke2_method }}"
+  changed_when: false
+  when: rke2_version != installed_version and rke2_airgap_mode
+
+- name: Start RKE2 service
+  ansible.builtin.systemd:
+    name: "{{ rke2_service_name }}"
+    state: started
+    enabled: true
+  retries: 10
+  delay: 6
+  register: result
+  until: result is not failed
+  environment:
+    RKE2_TOKEN: "{{ rke2_server_token }}"
+
+- name: Mask RKE2 agent service
+  ansible.builtin.systemd:
+    name: "rke2-agent.service"
+    enabled: false
+    masked: true
+  when: rke2_type == 'server'

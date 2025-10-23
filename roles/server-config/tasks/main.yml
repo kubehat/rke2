@@ -1,0 +1,23 @@
+---
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+########################################
+#               Packages               #
+########################################
+- name: Install dependencies packages
+  include_tasks: packages.yml
+
+########################################
+#              Firewalld               #
+########################################
+- name: Open Ports Firewall
+  include_tasks: firewalld.yml
+
+########################################
+#              nftables                #
+########################################
+- name: config nftables
+  include_tasks: nftables.yml
+  when:
+    - enable_nftable

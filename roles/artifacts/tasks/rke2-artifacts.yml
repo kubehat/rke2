@@ -1,0 +1,49 @@
+---
+########################################
+#           RKE2  artifacts            #
+########################################
+- name: Print the local RKE2 artifact path
+  debug:
+    msg: "The local RKE2 artifact path is: {{ local_rke2_artifact_path }}"
+
+- name: Create RKE2 artifacts folder
+  ansible.builtin.file:
+    path: "{{ local_rke2_artifact_path }}"
+    state: directory
+    mode: 0700
+
+- name: Download RKE2 checksum and artifacts in local direcotry
+  block:
+  - name: Download sha256 checksum file
+    ansible.builtin.get_url:
+      url: "{{ rke2_artifact_url }}/sha256sum-{{ rke2_architecture }}.txt"
+      dest: "{{ local_rke2_artifact_path }}/sha256sum-{{ rke2_architecture }}.txt"
+      validate_certs: "{{ false if artifactory_auth else omit }}"
+      url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+      url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"
+      force: yes
+      mode: 0644
+      timeout: 30
+  - name: Download RKE2 artifacts and compare with checksums
+    ansible.builtin.get_url:
+      url: "{{ rke2_artifact_url }}/{{ item }}"
+      dest: "{{ local_rke2_artifact_path }}/{{ item }}"
+      validate_certs: "{{ false if artifactory_auth else omit }}"
+      url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+      url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"
+      mode: 0644
+      checksum: "sha256:{{ rke2_artifact_url }}/sha256sum-{{ rke2_architecture }}.txt"
+      timeout: 30
+    with_items: "{{ rke2_artifact | reject('search', 'sha256sum') | list }}"
+
+########################################
+#           RKE2  Script               #
+########################################
+- name: Download RKE2 installation script
+  ansible.builtin.get_url:
+    url: "{{ rke2_install_bash_url }}"
+    dest: "{{ local_rke2_artifact_path }}/rke2.sh"
+    mode: 0700
+    validate_certs: "{{ false if artifactory_auth else omit }}"
+    url_username: "{{ registry_artifacts_username if artifactory_auth else omit }}"
+    url_password: "{{ registry_artifacts_password if artifactory_auth else omit }}"

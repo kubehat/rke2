@@ -1,0 +1,79 @@
+---
+########################################
+#                ENABLE                #
+########################################
+- name: Install nftables on RedHat
+  ansible.builtin.package:
+    name:
+      - nftables
+      - iptables
+    state: present
+
+- name: Ensure nftables service is enabled and started
+  ansible.builtin.service:
+    name: nftables
+    state: started
+    enabled: yes
+
+########################################
+#    Backup/deploy principal rules     #
+########################################
+- name: Check if nftables config exists
+  ansible.builtin.stat:
+    path: "{{ nft_config }}"
+  register: nftables_config_stat
+
+- name: Backup existing nftables config if exists
+  ansible.builtin.copy:
+    src: "{{ nft_config }}"
+    dest: "{{ nft_config }}.bak"
+    remote_src: yes
+  when: nftables_config_stat.stat.exists
+
+- name: Deploy nftables config from template
+  ansible.builtin.template:
+    src: "{{ nft_config_template }}"
+    dest: "{{ nft_config }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+########################################
+#  Backup/deploy Service default rules #
+########################################
+- name: Check if default nftables config exists
+  ansible.builtin.stat:
+    path: "{{ nft_svc_config }}"
+  register: nftables_config_default_stat
+
+- name: Backup existing default nftables config if exists
+  ansible.builtin.copy:
+    src: "{{ nft_svc_config }}"
+    dest: "{{ nft_svc_config }}.bak"
+    remote_src: yes
+  when: nftables_config_default_stat.stat.exists
+
+- name: Deploy nftables config from template
+  ansible.builtin.template:
+    src: "{{ nft_svc_config_template }}"
+    dest: "{{ nft_svc_config }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+########################################
+#     Set default nft & reload svc     #
+########################################
+- name: Set nftables as default for iptables, arptables, and ebtables
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - update-alternatives --set iptables /usr/sbin/iptables-nft
+    - update-alternatives --set arptables /usr/sbin/arptables-nft
+    - update-alternatives --set ebtables /usr/sbin/ebtables-nft
+    - alternatives --display iptables
+  changed_when: false
+
+- name: Reload nftables service to apply new rules
+  ansible.builtin.service:
+    name: nftables
+    state: reloaded

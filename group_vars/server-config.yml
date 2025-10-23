@@ -1,0 +1,32 @@
+########################################
+#               NFTABLE                #
+########################################
+enable_nftable: true
+nft_config: "/etc/nftables/principal.nft"
+nft_config_template: "principal.nft.j2"
+nft_svc_config: "/etc/sysconfig/nftables.conf"
+nft_svc_config_template: "nftables.conf.j2"
+
+########################################
+#           NFTABLE RKE2               #
+########################################
+nftables_allow_all: |
+  ## create file /etc/nftables/principal.nft or check the service file
+  table inet allow_all {
+      chain input {
+          type filter hook input priority 0; policy accept;
+      }
+
+      chain output {
+          type filter hook output priority 0; policy accept;
+      }
+
+      chain forward {
+          type filter hook forward priority 0; policy accept;
+      }
+  }
+
+########################################
+#          FireWalld RKE2              #
+########################################
+enable_firewalld: false

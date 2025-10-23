@@ -1,0 +1,27 @@
+---
+########################################
+#             KUBE-VIP                 #
+########################################
+- name: Create Manifest folder
+  ansible.builtin.file:
+    path: "{{ rke_manifest_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copy Kube-vip RBAC manifest
+  ansible.builtin.template:
+    src: manifest/kube-vip-rbac.yaml
+    dest: "{{ rke_manifest_path }}/rke2-00-kube-vip-rbac.yaml"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Copy Kube-vip ds manifest
+  ansible.builtin.template:
+    src: kube-vip-ds.yaml.j2
+    dest: "{{ rke_manifest_path }}/rke2-00-kube-vip.yaml"
+    owner: root
+    group: root
+    mode: 0644

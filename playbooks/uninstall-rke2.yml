@@ -1,0 +1,6 @@
+---
+- name: RKE2 uninstall
+  become: true
+  hosts: k8s_cluster
+  roles:
+    - role: rke-uninstaller

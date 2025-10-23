@@ -1,0 +1,163 @@
+{# RKE config file variable for server and agent #}
+{# server config Doc https://docs.rke2.io/reference/server_config #}
+{# agent config Doc https://docs.rke2.io/reference/linux_agent_config #}
+
+{# Server config #}
+{% if active_server is defined %}
+{% if ipv6_only is true %}
+server: https://[{{ kube_vip_ip if kube_vip | bool else rke2_api_ip }}]:9345
+{% else %}
+server: https://{{ kube_vip_ip if kube_vip | bool else rke2_api_ip }}:9345
+{% endif %}
+{% endif %}
+
+{# Token and Data Directory #}
+token: {{ rke2_server_token }}
+data-dir: {{ rke2_data_path }}
+
+{# RKE DNS resolve Configuration will be mapped to the Host /etc/resolv.conf #}
+resolv-conf: {{ resolv_conf }}
+
+{# CNI and TLS Settings (for servers only) #}
+{% if rke2_type == 'server' %}
+cni: {{ cluster_cni }}
+tls-san:
+  - cluster.local
+  - {{ cluster_domain }}
+{% if ( kube_vip | bool ) %}
+  - {{ kube_vip_ip }}
+{% endif %}
+{% for host in groups[rke2_servers_group_name] %}
+  - {{ hostvars[host]['ansible_host'] }}
+{% endfor %}
+{% endif %}
+
+{# RKE2 Cluster Domain #}
+{%- if rke2_cluster_domain is defined and ( rke2_type == 'server' ) %}
+cluster-domain: {{ rke2_cluster_domain }}
+{%- endif %}
+
+{# Node Taints #}
+{%- if rke2_type == 'server' and (rke2_server_node_taints | length > 0) %}
+node-taint:
+{% for taint in rke2_server_node_taints %}
+  - "{{ taint }}"
+{% endfor %}
+{%- elif rke2_type == 'agent' and (rke2_agent_node_taints | length > 0) %}
+node-taint:
+{% for taint in rke2_agent_node_taints %}
+  - "{{ taint }}"
+{% endfor %}
+{%- endif %}
+
+{# Node Labels Workers #}
+{%- if ( k8s_worker_node_label is defined ) and ( rke2_type == 'agent' ) %}
+node-label:
+{% for label in k8s_worker_node_label %}
+  - {{ label }}
+{% endfor %}
+{%- endif %}
+
+{# Node Labels CP #}
+{% if rke2_type == 'server' %}
+node-label:
+{% if k8s_cp_node_label is defined and k8s_cp_node_label | length > 0 %}
+{% for label in k8s_cp_node_label %}
+  - {{ label }}
+{% endfor %}
+{% endif %}
+{% if kube_vip_arp_enabled %}
+  - high-availability=kube-vip-arp
+{% endif %}
+{% if kube_vip_bgp_enabled %}
+  - high-availability=kube-vip-bgp
+{% endif %}
+{% if not kube_vip_arp_enabled and not kube_vip_bgp_enabled %}
+  - high-availability=disabled
+{% endif %}
+{% endif %}
+
+{# Snapshotter and Node Name #}
+snapshotter: {{ rke2_snapshooter }}
+node-name: {{ rke2_node_name }}
+
+{# Disable Kube-Proxy #}
+{% if ( disable_kube_proxy | bool ) and ( rke2_type == 'server' ) %}
+disable-kube-proxy: true
+{% endif %}
+
+{# Debug Mode #}
+{% if ( rke2_debug | bool ) %}
+debug: true
+{% endif %}
+
+{# SELinux #}
+{% if (rke2_selinux | bool ) %}
+selinux: true
+{% endif %}
+
+{# Kubeconfig Write Mode #}
+{% if ( rke2_type == 'server' ) %}
+write-kubeconfig-mode: 600
+{% endif %}
+
+{# Disable additional components #}
+{% if (disable_components | bool ) and ( rke2_type == 'server' ) %}
+disable:
+{% for components in components_to_disable %}
+  - {{ components }}
+{% endfor %}
+{% endif %}
+
+{# Dual Stack IPv4/IPv6 #}
+{% if dual_stack | bool %}
+cluster-cidr: "{{ dual_stack_cluster_cidr }}"
+service-cidr: "{{ dual_stack_service_cidr }}"
+cluster-dns: "{{ dual_stack_cluster_dns }}"
+node-ip: "{{ dual_stack_rke2_node_ip }}"
+{% if dual_stack_rke2_node_external_ip | length > 1 %}
+node-external-ip: "{{ dual_stack_rke2_node_external_ip }}"
+{% endif %}
+
+{# IPv4 Stack Only #}
+{% elif ipv4_only | bool %}
+cluster-cidr: "{{ ipv4_cluster_cidr }}"
+service-cidr: "{{ ipv4_service_cidr }}"
+cluster-dns: "{{ ipv4_cluster_dns }}"
+node-ip: "{{ ipv4_rke2_node_ip }}"
+{% if ipv4_rke2_node_external_ip | length > 1 %}
+node-external-ip: "{{ ipv4_rke2_node_external_ip }}"
+{% endif %}
+
+{# IPv6 Stack Only #}
+{% elif ipv6_only | bool %}
+cluster-cidr: "{{ ipv6_cluster_cidr }}"
+service-cidr: "{{ ipv6_service_cidr }}"
+cluster-dns: "{{ ipv6_cluster_dns }}"
+node-ip: "{{ ipv6_rke2_node_ip }}"
+{% if ipv6_rke2_node_external_ip | length > 1 %}
+node-external-ip: "{{ ipv6_rke2_node_external_ip }}"
+{% endif %}
+{% endif %}
+
+{# Expose etcd metrics #}
+{% if (expose_etcd_metrics | bool ) %}
+etcd-expose-metrics: true
+{% endif %}
+
+{# Expose kube scheduler #}
+{% if (expose_kube_scheduler | bool ) %}
+kube-scheduler-arg:
+  - "--bind-address=0.0.0.0"
+{% endif %}
+
+{# Expose kube controller #}
+{% if (expose_kube_controller | bool ) %}
+kube-controller-manager-arg:
+  - "--bind-address=0.0.0.0"
+{% endif %}
+
+{# Disable rke2 default cloud controller manager #}
+{% if ( disable_cloud_controller | bool ) and ( rke2_type == 'server' ) %}
+disable-cloud-controller: true
+{% endif %}

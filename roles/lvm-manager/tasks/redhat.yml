@@ -1,0 +1,26 @@
+---
+- name: YUM | Install packages
+  yum:
+    name:
+      - sg3_utils
+      - lvm2
+      - iscsi-initiator-utils
+      - nfs-utils
+    state: present
+
+- name: Enable and start services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  become: true
+  loop: "{{ packages_services }}"
+
+- name: COMMAND | checking for scsi devices
+  command: sg_scan
+  register: scsi_devices
+  changed_when: false
+
+- name: COMMAND | Rescanning for new disks
+  command: /usr/bin/rescan-scsi-bus.sh
+  changed_when: false

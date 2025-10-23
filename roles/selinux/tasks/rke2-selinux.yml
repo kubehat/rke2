@@ -1,0 +1,53 @@
+---
+#--------------------------------------------------#
+# This will install only Rancher RKE2 Selinux RPM  #
+#     https://github.com/rancher/rke2-selinux      #
+#--------------------------------------------------#
+
+########################################
+#       Install Selinux Artifact       #
+########################################
+- name: Create SELinux artifacts folder
+  ansible.builtin.file:
+    path: "{{ rke2_artifact_path }}/selinux/rke2"
+    state: directory
+    mode: 0700
+
+- name: Copy local RKE2 selinux artifacts
+  ansible.builtin.copy:
+    src: "{{ local_rke2_selinux_path }}/rke2/{{ rke2_artifact_selinux_url | basename }}"
+    dest: "{{ rke2_artifact_path }}/selinux/rke2/{{ rke2_artifact_selinux_url | basename }}"
+    mode: 0644
+    force: yes
+
+- name: Copy local Rancher GPG-Key
+  ansible.builtin.copy:
+    src: "{{ local_rke2_selinux_path }}/rke2/{{ rke2_artifact_selinux_gpg_key_file }}"
+    dest: "{{ rke2_artifact_path }}/selinux/rke2/{{ rke2_artifact_selinux_gpg_key_file }}"
+    mode: 0644
+    force: yes
+
+- name: Add RKE2 GPG key to the host
+  rpm_key:
+    state: present
+    key: "{{ rke2_artifact_path }}/selinux/rke2/{{ rke2_artifact_selinux_gpg_key_file }}"
+
+- name: Find all rpm files in SELinux folder
+  find:
+    paths: "{{ rke2_artifact_path }}/selinux/rke2"
+    patterns: "*.rpm"
+  register: rpm_files_selinux
+
+- name: Setting rpm_list SELinux
+  set_fact:
+    rpm_list_selinux: "{{ rpm_files_selinux.files | map(attribute='path') | list }}"
+
+- name: Debug the list of rpm files found
+  debug:
+    msg: "{{ rpm_list_selinux }}"
+
+- name: Installing the rpm files
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ rpm_list_selinux }}"

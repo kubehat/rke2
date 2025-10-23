@@ -1,0 +1,18 @@
+---
+#identify the control plane node that's currently active and can be used to manage or configure the cluster, such as joining additional nodes or performing cluster-related operations.
+- name: Populate services facts
+  ansible.builtin.service_facts:
+
+- name: Set the Active Server variable
+  ansible.builtin.set_fact:
+    active_server: "{{ inventory_hostname }}"
+  delegate_facts: true
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups[rke2_cluster_group_name] }}"
+    - localhost  # Include localhost to check the condition there as well
+  when:
+    - inventory_hostname in groups[rke2_servers_group_name]
+    - ansible_facts.services.get("rke2-server.service") is defined
+    - ansible_facts.services["rke2-server.service"].state is defined
+    - ansible_facts.services["rke2-server.service"].state == "running"

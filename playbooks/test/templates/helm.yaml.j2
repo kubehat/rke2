@@ -1,0 +1,30 @@
+{# https://argo-cd.readthedocs.io/en/stable/operator-manual/argocd-repositories-yaml #}
+{% for repository in repositories %}
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{ repository.secret_name }}
+  namespace: {{ repository.secret_namespace }}
+  annotations:
+    managed-by: argocd.argoproj.io
+  labels:
+{% if repository.template_creds %}
+    argocd.argoproj.io/secret-type: repo-creds
+{% else %}
+    argocd.argoproj.io/secret-type: repository
+{% endif %}
+stringData:
+  name: {{ repository.repository_name }}
+  {% if repository.enable_oci -%}
+  enableOCI: "true"
+  {% endif -%}
+  type: {{ repository.repo_type }}
+  url: {{ repository.repository_url }}
+  username: {{ repository.repository_username }}
+  password: {{ repository.repository_password }}
+  {% if repository.insecure_flag -%}
+  insecure: "true"
+  {% endif +%}
+{% endfor %}

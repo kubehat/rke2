@@ -1,0 +1,19 @@
+---
+########################################
+#             Alias Bashrc             #
+########################################
+- name: Add KUBECONFIG, {{ rke2_data_path }} & {{ rke2_bin_path }} in root's .bashrc PATH
+  ansible.builtin.lineinfile:
+    path: "/root/.bashrc"
+    line: "{{ item }}"
+    create: yes
+    state: present
+  loop:
+    - "export PATH=$PATH:{{ rke2_data_path }}/bin:/usr/local/bin"
+    - "export KUBECONFIG={{ rke_config_path }}/rke2.yaml"
+    - "alias kn='kubectl config set-context --current --namespace '"
+    - "alias k='kubectl'"
+    - "alias ll='ls -ltrah'"
+    - "source <(kubectl completion bash)"
+    - "complete -o default -F __start_kubectl k"
+  when: rke2_type == 'server'

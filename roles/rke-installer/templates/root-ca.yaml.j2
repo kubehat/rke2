@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: root-ca-clusters
+  namespace: cert-manager
+type: kubernetes.io/tls
+data:
+  tls.crt: {{ root_ca_crt }}
+  ca.crt: {{ root_ca_crt }}
+  tls.key: {{ root_ca_key }}

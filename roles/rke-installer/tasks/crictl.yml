@@ -1,0 +1,11 @@
+---
+########################################
+#               CRICTL                 #
+########################################
+- name: Copy crictl config
+  ansible.builtin.template:
+    src: "{{ crictl_config }}"
+    dest: "{{ crictl_config_path }}/crictl.yaml"
+    owner: root
+    group: root
+    mode: 0600

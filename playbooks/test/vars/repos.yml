@@ -1,0 +1,21 @@
+repositories:
+  - secret_name: "argocd-harbor-repo"
+    secret_namespace: "argoproj"
+    repository_name: "harbor-repo-oci"
+    enable_oci: true
+    repo_type: "helm"
+    repository_url: "harbor.gate.example.com"
+    repository_username: "{{ lookup('env', 'REGISTRY_HARBOR_HELM_USERNAME') }}"
+    repository_password: "{{ lookup('env', 'REGISTRY_HARBOR_HELM_PASSWORD') }}"
+    insecure_flag: true
+    template_creds: true
+  - secret_name: "argocd-jfrog-repo"
+    secret_namespace: "argoproj"
+    repository_name: "jfrog-repo-oci"
+    enable_oci: true
+    repo_type: "helm"
+    repository_url: "jfrog.gate.example.com"
+    repository_username: "{{ lookup('env', 'REGISTRY_JFROG_HELM_USERNAME') }}"
+    repository_password: "{{ lookup('env', 'REGISTRY_JFROG_HELM_PASSWORD') }}"
+    insecure_flag: false
+    template_creds: true

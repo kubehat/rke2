@@ -1,0 +1,12 @@
+- name: Install Container Selinux Package
+  include_tasks: container-selinux.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - container_selinux
+
+
+- name: Install RKE Selinux Package
+  include_tasks: rke2-selinux.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - rke2_selinux

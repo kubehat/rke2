@@ -1,0 +1,22 @@
+########################################
+#                 RedHat               #
+########################################
+- name: YUM | Install packages
+  yum:
+    name:
+      - bash-completion
+      - telnet
+    state: present
+  when:
+    - ansible_os_family == "RedHat"
+
+########################################
+#                 Debian               #
+########################################
+- name: APT | Install packages
+  apt:
+    name:
+      - bash-completion
+      - telnet
+    state: present
+  when: ansible_os_family == "Debian"

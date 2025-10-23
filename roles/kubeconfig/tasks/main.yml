@@ -1,0 +1,95 @@
+---
+- name: Get the username running the deploy
+  become: false
+  command: whoami
+  register: ansible_playbook_user
+  delegate_to: localhost
+
+- name: Set the username as a fact
+  set_fact:
+    ansible_playbook_user: "{{ ansible_playbook_user.stdout }}"
+
+- name: Create kubeconfig folder
+  ansible.builtin.file:
+    path: "{{ kubeconfig_path }}/{{ cluster_name }}"
+    state: directory
+    owner: "{{ ansible_playbook_user }}"
+    group: "{{ ansible_playbook_user }}"
+    mode: 0700
+  delegate_to: localhost
+
+- name: Set variable for inventory hostname
+  ansible.builtin.set_fact:
+    kubeconfig_filename: "{{ kubeconfig_path }}/{{ cluster_name }}/{{ cluster_name }}.kubeconfig"
+
+- name: Slurp kubeconfig
+  become: true
+  ansible.builtin.slurp:
+    src: "{{ rke_config_path }}/rke2.yaml"
+  register: kubeconfig_raw
+  no_log: true
+
+- name: Decode and parse kubeconfig
+  become: true
+  set_fact:
+    kubeconfig_parsed: "{{ kubeconfig_raw.content | b64decode | from_yaml }}"
+  no_log: true
+
+- name: Extract required fields
+  become: true
+  set_fact:
+    extracted_data:
+      cluster_name: "{{ kubeconfig_parsed.clusters[0].name }}"
+      server: "{{ kubeconfig_parsed.clusters[0].cluster.server }}"
+      ca_data: "{{ kubeconfig_parsed.clusters[0].cluster['certificate-authority-data'] }}"
+      user_name: "{{ kubeconfig_parsed.users[0].name }}"
+      cert_data: "{{ kubeconfig_parsed.users[0].user['client-certificate-data'] }}"
+      key_data: "{{ kubeconfig_parsed.users[0].user['client-key-data'] }}"
+  no_log: true
+
+- name: Print version
+  become: true
+  debug:
+    msg:
+      - "{{ extracted_data.ca_data }}"
+      - "{{ extracted_data.cert_data }}"
+      - "{{ extracted_data.key_data }}"
+  no_log: true
+
+- name: Render kubeconfig with custom context
+  template:
+    src: kubeconfig.j2
+    dest: "{{ kubeconfig_path }}/{{ cluster_name }}/{{ cluster_name }}.kubeconfig"
+    mode: 0600
+    owner: "{{ ansible_playbook_user }}"
+    group: "{{ ansible_playbook_user }}"
+  delegate_to: localhost
+
+- name: Test kubectl with the actual kubeconfig
+  command: kubectl get nodes -o wide --kubeconfig="{{ kubeconfig_filename }}"
+  register: kubectl_output
+  delegate_to: localhost
+
+- name: Show kubectl output
+  debug:
+    var: kubectl_output.stdout_lines
+
+########################################
+#      PRECONFIGURED KUBECONFIG        #
+########################################
+- name: Create Server kubeconfig folder
+  become: true
+  ansible.builtin.file:
+    path: "{{ rke_config_path }}/{{ cluster_name }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: 0700
+
+- name: Copy PRECONFIGURED kubeconfig to Server {{ rke_config_path }}/{{ cluster_name }}
+  become: true
+  ansible.builtin.copy:
+    src: "{{ kubeconfig_filename }}"
+    dest: "{{ rke_config_path }}/{{ cluster_name }}"
+    mode: 0644
+    force: yes
