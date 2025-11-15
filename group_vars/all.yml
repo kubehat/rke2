@@ -5,17 +5,14 @@
 # Download artifacts
 download_artifacts: false
 
-# Env Name
-env_name: "local"
-
 # Cluster Name
-cluster_name: "orion"
+cluster_name: "k8s"
 
 # Cluster FQDN endpoint (for rke2 Cluster Domain SAN)
-cluster_domain: "kube.zme.k7s"
+cluster_domain: "kube.k8s.io"
 
 # Target Env
-target_env: "{{ lookup('env', 'TARGET_ENV') | default('local', true) }}"
+target_env: "{{ lookup('env', 'TARGET_ENV') | default('k8s', true) }}"
 
 #--------------------------------------------#
 #                   Kubeconfig               #
@@ -43,9 +40,14 @@ config_private_registry: false
 
 #Containerd can be configured to connect to private registries and use them to pull images as needed by the kubelet.
 # Docker Registry info
-registry_docker1: "docker.jfrog.example.com"
-registry_docker2: "docker.jfrog.example.com"
-registry_docker_insecure: false
+registry1_docker: "docker.jfrog.example.com"
+registry1_docker_user: ""
+registry1_docker_password: ""
+registry1_docker_insecure: false
+registry2_docker: "docker.jfrog.example.com"
+registry2_docker_user: ""
+registry2_docker_password: ""
+registry2_docker_insecure: false
 
 # RKE2 Mirrors config
 # First element of Mirrors registries will be used
@@ -74,15 +76,15 @@ mirrors:
 # RKE2 Registries credentials
 registries:
   reg1:
-    url: "{{ lookup('env', 'REGISTRY_1_URL') | default(registry_docker1, true) }}"
-    username: "{{ lookup('env', 'REGISTRY_USER') }}"
-    password: "{{ lookup('env', 'REGISTRY_PASSWORD') }}"
-    insecure: "{{ registry_docker_insecure }}"
+    url: "{{ lookup('env', 'REGISTRY_1_URL') | default(registry1_docker, true) }}"
+    username: "{{ lookup('env', 'REGISTRY1_USER') | default(registry1_docker_user, true) }}"
+    password: "{{ lookup('env', 'REGISTRY1_PASSWORD') | default(registry1_docker_password, true) }}"
+    insecure: "{{ registry1_docker_insecure }}"
   reg2:
-    url: "{{ lookup('env', 'REGISTRY_2_URL') | default(registry_docker2, true) }}"
-    username: "{{ lookup('env', 'REGISTRY_USER2') }}"
-    password: "{{ lookup('env', 'REGISTRY_PASSWORD2') }}"
-    insecure: "{{ registry_docker_insecure }}"
+    url: "{{ lookup('env', 'REGISTRY_2_URL') | default(registry2_docker, true) }}"
+    username: "{{ lookup('env', 'REGISTRY2_USER') | default(registry2_docker_user, true) }}"
+    password: "{{ lookup('env', 'REGISTRY2_PASSWORD') | default(registry2_docker_password, true) }}"
+    insecure: "{{ registry2_docker_insecure }}"
 
 #--------------------------------------------#
 #                    RKE2                    #
@@ -312,7 +314,7 @@ kube_vip_bgp_peer_as: "64520"
 kube_vip_bgp_peer_address: "10.13.13.1"
 
 # Kube-vip image
-kube_vip_image: "ghcr.io/kube-vip/kube-vip:v0.9.2"
+kube_vip_image: "ghcr.io/kube-vip/kube-vip:v1.0.1"
 
 #--------------------------------------------#
 #                     lvm                    #
