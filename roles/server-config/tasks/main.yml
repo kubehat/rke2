@@ -11,7 +11,8 @@
 ########################################
 #              Firewalld               #
 ########################################
-- name: Open Ports Firewall
+# https://ranchermanager.docs.rancher.com/how-to-guides/advanced-user-guides/open-ports-with-firewalld
+- name: Disable Firewalld
   include_tasks: firewalld.yml
 
 ########################################
@@ -21,3 +22,4 @@
   include_tasks: nftables.yml
   when:
     - enable_nftable
+    - ansible_os_family == "RedHat"

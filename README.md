@@ -1,40 +1,34 @@
+### Set Env
+export TARGET_ENV="orbit"
+export ANSIBLE_INVENTORY="mgt"
+
 ### What to change
 ```bash
 # example when deploying orion cluster.
 Change the user in ansible.cfg
-Adapt variables in the inventory file ./group_vars/inventories/orion/orion.yml
+Adapt variables in the var file ./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.yml
+Adapt Inventory hosts in the inventory file ./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.ini
 ```
 
 ### Test Hosts
 ```bash
-export ANSIBLE_LOG_PATH=./logs/sys_info_$(date "+%Y-%m-%d_%H%M%S").log
-ansible-playbook -i ./inventories/orion/orion.ini ./playbooks/check-servers.yml --extra-vars "@./group_vars/all.yml"
+ansible-playbook -i ./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.ini ./playbooks/check-servers.yml --extra-vars "@./group_vars/all.yml"
 ```
 
 ---
 ### Install RKE2
 ```bash
-#Management cluster
-export ANSIBLE_LOG_PATH=./logs/install_mgt_$(date "+%Y-%m-%d_%H%M%S").log
-ansible-playbook -i ./inventories/orion/orion.ini cluster.yml --extra-vars "@./group_vars/rke2-config.yml"
+ansible-playbook -i ./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.ini cluster.yml --extra-vars "@./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.yml" --extra-vars "@./group_vars/server-config.yml"
 ```
 
 ---
 ### Uninstall RKE2
 ```bash
-export ANSIBLE_LOG_PATH=./logs/uninstall_$(date "+%Y-%m-%d_%H%M%S").log 
-ansible-playbook -i ./inventories/orion/orion.ini ./playbooks/uninstall-cluster.yml
+ansible-playbook -i ./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.ini ./playbooks/uninstall-rke2.yml --extra-vars "@./group_vars/all.yml" --extra-vars "@./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.yml"
+```
 this will trigger the following script
 Script > `/usr/local/bin/rke2-uninstall.sh`
-```
 
----
-### Server Config
-Server config consist of configuring DNS, Firewall, Ntables . . . . 
-```bash
-export ANSIBLE_LOG_PATH=./logs/server-config_$(date "+%Y-%m-%d_%H%M%S").log
-ansible-playbook -i ./inventories/orion/orion.ini ./playbooks/server-config.yml --extra-vars "@./group_vars/server-config.yml"
-```
 
 ---
 ### Export Kubeconfig to Vault
@@ -48,8 +42,7 @@ export VAULT_ADDR=""
 
 #### Run Playbook
 ```bash
-export ANSIBLE_LOG_PATH=./logs/cluster_$(date "+%Y-%m-%d_%H%M%S").log
-ansible-playbook -i ./inventories/zme-orion/management/orion.ini ./playbooks/vault-exporter.yml --extra-vars "@./group_vars/all.yml" --extra-vars "@./inventories/zme-orion/management/management.yml"
+ansible-playbook cluster.yml --tags vault -i ./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.ini --extra-vars "@./inventories/$TARGET_ENV/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.yml"
 ```
 
 ---
@@ -83,8 +76,4 @@ Config file
 Preconfigured KUBECONFIG can be found in the following path
 ```bash
 #if your cluster is mgt
-/etc/rancher/rke2/mgt/mgt.kubeconfig
-
-#if you cluster is an ACR, for example NIM
-/etc/rancher/rke2/nim/nim.kubeconfig
-```
+/etc/rancher/rke2/$ANSIBLE_INVENTORY/$ANSIBLE_INVENTORY.kubeconfig

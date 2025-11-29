@@ -9,5 +9,4 @@
     enabled: no
     masked: yes
   when:
-    - enable_firewalld == false
     - ansible_facts.services['firewalld.service'] is defined

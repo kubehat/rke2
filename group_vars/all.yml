@@ -247,7 +247,7 @@ rke2_artifact_selinux_gpg_key_url: "https://rpm.rancher.io/public.key"
 rke2_artifact_selinux_gpg_key_file: "public.key"
 
 #--------------------------------------------#
-#             RedHat - Selinux               #
+#          RedHat - Selinux (Beta)           #
 #--------------------------------------------#
 # This will install only Generic Container Selinux RPM
 container_selinux: false  #if set to false, RKE2 will install automatically an ambeded version for Redhat
@@ -287,7 +287,7 @@ root_ca_crt: "{{ lookup('env', 'ROOT_CA_CRT') }}"
 # Path to root CA config file template
 root_ca_manifest: "root-ca.yaml.j2"
 # Manifest creation enabler
-root_ca_config: true
+root_ca_config: false
 
 #--------------------------------------------#
 #                RKE2-Kubevip                #
@@ -314,7 +314,7 @@ kube_vip_bgp_peer_as: "64520"
 kube_vip_bgp_peer_address: "10.13.13.1"
 
 # Kube-vip image
-kube_vip_image: "ghcr.io/kube-vip/kube-vip:v1.0.1"
+kube_vip_image: "ghcr.io/kube-vip/kube-vip:v1.0.2"
 
 #--------------------------------------------#
 #                     lvm                    #
@@ -322,30 +322,20 @@ kube_vip_image: "ghcr.io/kube-vip/kube-vip:v1.0.1"
 lvm_workers_only: true
 #LVM Apply
 lvm_apply: false
-lvm_rpm_offline: false
 
 # VG Config
 device_id: "/dev/sda"
 disk_vgname: "csi_storage"
 lvm_groups:
       - vgname: "{{ disk_vgname }}"
-        disks: "{{ device_id }}"
+        disks:
+          - "{{ device_id }}"
         create: true
         lvnames:
           - lvname: "kubernetes"
-            size: "25g"
+            size: "100%FREE" #20g
             create: true
             filesystem: "xfs"
             mount: true
             mount_point: "/mnt/kubernetes"
             mount_options: 'defaults,noatime'
-
-# RPM to Install
-packages_list:
-  - lvm2-2.03.23-2.el9.tar.gz
-  - iscsi-initiator-utils-6.2.1.9-1.gita65a472.el9.tar.gz
-
-# RPM Services to enable and start
-packages_services:
-  - iscsid
-  - iscsiuio

@@ -6,19 +6,19 @@
       - scsitools
       - xfsprogs
       - jq
-      - nfs-utils
+      - nfs-common
     update_cache: true
     cache_valid_time: 3600
     state: present
 
-- name: COMMAND | Checking for scsi devices
-  command: sg_scan
+- name: debian | checking for scsi devices
+  ansible.builtin.command: sg_scan
+  become: true
   register: scsi_devices
   changed_when: false
 
-- name: COMMAND | Rescanning for new disks added
-  command: /sbin/rescan-scsi-bus
+- name: debian | rescanning for new disks added
+  ansible.builtin.command: /usr/bin/rescan-scsi-bus.sh
+  become: true
   changed_when: false
-  when:
-    - scsi_devices.stdout is defined
-    - scsi_devices.stdout != ""
+  when: scsi_devices['stdout'] | length > 0

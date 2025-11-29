@@ -9,12 +9,6 @@
 ########################################
 #                 RedHat               #
 ########################################
-- name: Install RPMs Offline
-  include_tasks: rpm.yml
-  when:
-    - lvm_rpm_offline is true
-    - ansible_os_family == "RedHat"
-
 - name: INCLUDE | RedHat family
   include_tasks: redhat.yml
   when: ansible_os_family == "RedHat"
