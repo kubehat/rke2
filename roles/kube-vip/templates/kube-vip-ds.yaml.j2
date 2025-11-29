@@ -51,17 +51,17 @@ spec:
         - name: vip_leaderelection # LeaderElection
           value: "true"
         - name: vip_leaseduration  # LeaderElection
-          value: "5"
+          value: "{{ kube_vip_leaseduration | default('15') }}"
         - name: vip_renewdeadline  # LeaderElection
-          value: "3"
+          value: "{{ kube_vip_renewdeadline | default('10') }}"
         - name: vip_retryperiod    # LeaderElection
-          value: "1"
+          value: "{{ kube_vip_retryperiod | default('2') }}"
         - name: vip_leasename
           value: plndr-cp-lock
         - name: address            # VIP Address
           value: "{{ kube_vip_ip }}"
         - name: vip_loglevel
-          value: "5"
+          value: "{{ kube_vip_loglevel | default('4') }}"
 {% if kube_vip_bgp_enabled %}
         - name: bgp_enable         # BGP
           value: "{{ kube_vip_bgp_enabled | string | lower }}"
