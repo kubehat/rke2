@@ -59,7 +59,7 @@ spec:
         - name: vip_leasename
           value: plndr-cp-lock
         - name: address            # VIP Address
-          value: "{{ kube_vip_ip }}"
+          value: "{{ cluster_domain }}"
         - name: vip_loglevel
           value: "{{ kube_vip_loglevel | default('4') }}"
 {% if kube_vip_bgp_enabled %}
