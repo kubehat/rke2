@@ -90,7 +90,7 @@ registries:
 #                    RKE2                    #
 #--------------------------------------------#
 # RKE2 version
-k8s_version: "1.34.2"
+k8s_version: "1.34.3"
 rke2_release: "rke2r1"
 rke2_version: "v{{ k8s_version }}+{{ rke2_release }}"
 
