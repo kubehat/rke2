@@ -1,3 +1,6 @@
+💡 Important Note:
+It is highly recommended to set and use `cluster_domain` in your variables, even if you are not planning to use kube-vip. This ensures TLS SAN entries are properly generated, certificates remain valid across nodes, and RKE2 components can always communicate reliably via DNS, and also the Kubeconfig will be benerated with the right domain.
+
 ### Set Env
 export TARGET_ENV="orbit"
 export ANSIBLE_INVENTORY="mgt"
